@@ -1,0 +1,9 @@
+# Virtual env
+.venv/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# pytest / Click cache
+.cache/
