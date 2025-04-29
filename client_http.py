@@ -1,42 +1,69 @@
 import requests
-import json
 import sys
 
-# Adresse serveur HTTP
-SERVER_URL = 'http://localhost:5000'
+# Configuration du serveur HTTP
+SERVER_URL = 'http://localhost:8000'
 
-def send_request(endpoint, payload):
-    url = f"{SERVER_URL}/{endpoint}"
+# Inscrire un joueur (/players)
+def subscribe(pseudo, role):
+    url = f"{SERVER_URL}/players"
+    payload = {'pseudo': pseudo, 'role': role}
     try:
         resp = requests.post(url, json=payload)
         resp.raise_for_status()
         data = resp.json()
-        print("Réponse du serveur:", json.dumps(data, ensure_ascii=False, indent=2))
+        print(f"Serveur: {data.get('message')}")
     except requests.RequestException as e:
-        print(f"Erreur HTTP: {e}")
+        print(f"Erreur lors de l'inscription: {e}")
+
+# Envoyer une action (/action)
+def send_action(pseudo, dx, dy):
+    url = f"{SERVER_URL}/action"
+    payload = {'pseudo': pseudo, 'action': [dx, dy]}
+    try:
+        resp = requests.post(url, json=payload)
+        resp.raise_for_status()
+        data = resp.json()
+        print(f"Serveur: {data.get('message')}")
+    except requests.RequestException as e:
+        print(f"Erreur lors de l'envoi de l'action: {e}")
+
+# Récupérer l'état du jeu (/state)
+def get_state():
+    url = f"{SERVER_URL}/state"
+    try:
+        resp = requests.get(url)
+        resp.raise_for_status()
+        data = resp.json()
+        print("État du plateau :")
+        print(data.get('board'))
+    except requests.RequestException as e:
+        print(f"Erreur lors de la récupération de l'état: {e}")
 
 if __name__ == '__main__':
     while True:
         print("\n--- Menu HTTP ---")
         print("1. S'inscrire")
         print("2. Envoyer une action")
-        print("3. Quitter")
+        print("3. Afficher état")
+        print("4. Quitter")
         choice = input("Choix : ")
 
         if choice == '1':
             pseudo = input("Pseudo (1 lettre) : ").upper()
             role   = input("Rôle (wolf/villager) : ").lower()
-            payload = {'type': 'subscribe', 'pseudo': pseudo, 'role': role}
-            send_request('subscribe', payload)
+            subscribe(pseudo, role)
 
         elif choice == '2':
             pseudo = input("Votre pseudo : ").upper()
             dx     = int(input("Déplacement X (-1,0,1) : "))
             dy     = int(input("Déplacement Y (-1,0,1) : "))
-            payload = {'type': 'action', 'pseudo': pseudo, 'action': [dx, dy]}
-            send_request('action', payload)
+            send_action(pseudo, dx, dy)
 
         elif choice == '3':
+            get_state()
+
+        elif choice == '4':
             sys.exit(0)
 
         else:
