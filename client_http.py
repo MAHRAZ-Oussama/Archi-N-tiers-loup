@@ -4,19 +4,19 @@ import sys
 
 class WerewolfClient:
     def __init__(self, host='localhost', port=8000):
-        self.host = host
-        self.port = port
-        self.conn = http.client.HTTPConnection(self.host, self.port)
+        self.host   = host
+        self.port   = port
+        self.conn   = http.client.HTTPConnection(self.host, self.port)
         self.pseudo = None
 
     def _request(self, method, path, body=None):
         headers = {'Content-Type': 'application/json'} if body else {}
         payload = json.dumps(body) if body else None
         self.conn.request(method, path, payload, headers)
-        response = self.conn.getresponse()
-        raw = response.read().decode()
-        if response.status >= 400:
-            print(f"[Erreur HTTP {response.status}] {raw}")
+        resp = self.conn.getresponse()
+        raw  = resp.read().decode()
+        if resp.status >= 400:
+            print(f"[Erreur HTTP {resp.status}] {raw}")
             return None
         try:
             return json.loads(raw)
@@ -26,70 +26,72 @@ class WerewolfClient:
 
     def subscribe(self, pseudo, role):
         """S'inscrire et mémoriser le pseudo."""
-        resp = self._request('POST', '/players', {'pseudo': pseudo, 'role': role})
-        if resp and 'message' in resp:
-            print(f"Serveur: {resp['message']}")
+        data = self._request('POST', '/players', {'pseudo': pseudo, 'role': role})
+        if data and 'message' in data:
+            print("→", data['message'])
             self.pseudo = pseudo
         else:
-            print("Échec de l'inscription.")
+            print(" Échec de l'inscription.")
 
     def send_action(self, dx, dy):
         """Envoyer un déplacement pour le pseudo inscrit."""
         if not self.pseudo:
-            print("❗ Vous devez d'abord vous inscrire (option 1).")
+            print(" D'abord inscrivez-vous (option 1).")
             return
-        resp = self._request('POST', '/action', {'pseudo': self.pseudo, 'action': [dx, dy]})
-        if resp and 'message' in resp:
-            print(f"Serveur: {resp['message']}")
+        data = self._request('POST', '/action', {
+            'pseudo': self.pseudo,
+            'action': [dx, dy]
+        })
+        if data and 'message' in data:
+            print("→", data['message'])
         else:
-            print("Échec de l'envoi de l'action.")
+            print(" Échec de l'action.")
 
     def get_state(self):
-        """Récupérer et afficher l'état du plateau et des joueurs en grille carrée."""
-        resp = self._request('GET', '/state')
-        if not resp:
+        """Récupérer et afficher l'état du plateau en grille carrée."""
+        data = self._request('GET', '/state')
+        if not data:
             return
-        turn = resp.get('turn')
-        max_turns = resp.get('nb_max_turn')
-        board = resp.get('board', [])
-        players = resp.get('players', [])
+
+        turn      = data.get('turn')
+        max_turns = data.get('nb_max_turn')
+        board     = data.get('board', [])
+        players   = data.get('players', [])
 
         height = len(board)
-        width = len(board[0]) if height > 0 else 0
+        width  = len(board[0]) if height else 0
 
-        # Affichage des coordonnées X
-        header = '    ' + '   '.join(f'{i:2}' for i in range(width))
-        print(f"\n Tour {turn}/{max_turns}")
+        
+        header = "    " + " ".join(f"{i:2}" for i in range(width))
+        print(f"\n  Tour {turn}/{max_turns}")
         print(header)
 
-        # Ligne horizontale
-        sep = '   +' + '---+' * width
+       
+        sep = "   +" + "+".join(["---"] * width) + "+"
+
+      
+        for y, row in enumerate(board):
+            print(sep)
+            line_content = "|".join(f" {cell} " for cell in row)
+         
+            print(f"{y:2} |{line_content}|")
+            print(f"   |{line_content}|")
         print(sep)
 
-        # Affichage des lignes doublées pour carré
-        for y, row in enumerate(board):
-            row_display = ' | '.join(cell.center(1) for cell in row)
-            line = f'{y:2} | ' + row_display + ' |'
-            # Afficher deux fois chaque ligne
-            print(line)
-            print(line)
-            print(sep)
-
-        # Liste des joueurs
-        print("Joueurs :")
+        # Affichage des joueurs
+        print("\nJoueurs inscrits :")
         for p in players:
             x, y = p.get('position', [None, None])
-            print(f"  • {p['pseudo']} ({p['role']}) en ({x},{y})")
+            print(f" • {p['pseudo']} ({p['role']}) en ({x},{y})")
 
     def list_games(self):
         """Lister les parties en attente."""
-        resp = self._request('GET', '/games')
-        if not resp:
+        data = self._request('GET', '/games')
+        if not data:
             return
         print("\n🔎 Parties en attente :")
-        for idx, g in enumerate(resp.get('games', []), 1):
+        for idx, g in enumerate(data.get('games', []), 1):
             print(f"   {idx}. {g}")
-
 
 def main():
     client = WerewolfClient()
