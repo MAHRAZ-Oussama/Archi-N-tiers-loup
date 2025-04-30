@@ -96,7 +96,7 @@ class WerewolfClient:
 def main():
     client = WerewolfClient()
     while True:
-        print("\n--- Menu HTTP ---")
+        print("\n Menu ")
         print("1. S'inscrire")
         print("2. Envoyer une action")
         print("3. Afficher état")
